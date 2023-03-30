@@ -1,0 +1,18 @@
+--JobScope table
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\JobScope.sql"
+
+
+--Supplier table
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\Supplier.sql"
+
+
+--Employee table
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\Employee.sql"
+
+
+--Appointment table
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\Appointment.sql"
+
+
+--Supply table
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\Supply.sql"

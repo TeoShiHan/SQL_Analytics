@@ -1,0 +1,21 @@
+supplyID,supplyName,category,weight,expiryDate,supplierID
+ST369,Pfizer,vaccine,0.5,29/11/2021,SP107
+ST162,Sinovac,vaccine,0.5,18/6/2022,SP107
+ST274,Astrazeneca,vaccine,0.5,20/10/2021,SP107
+ST098,oxygen tank,equipment,68,9/7/2022,SP197
+ST652,ventilator,equipment,50,13/1/2022,SP194
+ST430,syringe,equipment,0.1,14/5/2022,SP641
+ST146,mask,personal protective equipment,0.1,12/11/2021,SP974
+ST829,isolation gown,personal protective equipment,1,14/5/2022,SP525
+ST496,gloves,personal protective equipment,0.5,6/6/2022,SP490
+ST664,respirator,personal protective equipment,0.5,6/8/2022,SP699
+ST244,Hospital beds,DME,80,3/3/2022,SP407
+ST121,Wheelchairs,DME,80,20/12/2021,SP412
+ST761,oxygen tank,equipment,68,3/8/2022,SP490
+ST266,ventilator,equipment,50,22/7/2022,SP940
+ST932,syringe,equipment,0.1,13/6/2022,SP392
+ST096,mask,personal protective equipment,0.1,8/11/2021,SP801
+ST536,isolation gown,personal protective equipment,1,13/2/2022,SP197
+ST616,gloves,personal protective equipment,0.5,6/10/2021,SP194
+ST510,respirator,personal protective equipment,0.5,8/6/2022,SP641
+ST460,Hospital beds,DME,80,6/10/2021,SP974

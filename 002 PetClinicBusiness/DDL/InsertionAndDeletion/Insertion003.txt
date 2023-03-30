@@ -1,0 +1,18 @@
+--Examination table
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\Examination.sql"
+
+
+--Treatment table
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\Treatment.sql"
+
+
+--LodgeAllocation
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\LodgeAllocation.sql"
+
+
+--LodgeReport
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\LodgeReport.sql"
+
+
+--WorkloadManagement
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\WorkloadManagement.sql"

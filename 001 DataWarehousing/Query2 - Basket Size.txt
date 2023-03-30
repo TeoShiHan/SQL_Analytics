@@ -1,0 +1,154 @@
+set linesize 200
+set pagesize 20
+
+accept v_startY char prompt 'Enter the starting year (yyyy) :'
+accept v_endY char prompt 'Enter the ending year (yyyy) :'
+
+column  best    format a16   heading 'Best Product'
+column  second  format a16   heading '2nd'
+column  third   format a16   heading '3nd'
+column  worst   format a16   heading 'Worst Product'
+column  p1      format 99.99 heading 'Motorcycles'
+column  p2      format 99.99 heading 'Classic Cars'
+column  p3      format 99.99 heading 'Trucks and Buses'
+column  p4      format 99.99 heading 'Vintage Cars'
+column  p5      format 99.99 heading 'Planes'
+column  p6      format 99.99 heading 'Ships'
+column  p7      format 99.99 heading 'Trains'
+
+ttitle col 50 'Quarterly average basket size of each product line from &v_startY to &v_endY' skip 1-
+       col 50  ==================================================================== skip 2
+
+-----------------------------------------------------------------------
+-- map total number of items sold for each products in year quarter
+
+create or replace view basket_size_by_year_quarter as
+    select
+        cal_year_quarter,
+        productLine,
+        sum(quantityOrdered) as total_quantity,
+        count(distinct orderNumber) as total_transactions,
+        sum(quantityOrdered) / count(distinct orderNumber) as basket_size
+    from
+        sales_fact
+    join
+        dim_date using (date_key)
+    join
+        dim_products using (product_key)
+    group by
+        cal_year_quarter,
+        productLine;
+
+-- select * from basket_size_by_year_quarter;
+----------------------------------------------------------------------
+-- rank the product line based on basket size
+
+create or replace view ranked_basket_size as
+    select
+        cal_year_quarter,
+        productLine,
+        total_quantity,
+        total_transactions,
+        basket_size,
+        rank() over (
+            partition by cal_year_quarter
+            order by basket_size desc
+        ) basket_size_rank
+    from
+        basket_size_by_year_quarter;
+
+-- select * from ranked_basket_size;
+----------------------------------------------------------------------
+-- create the pivot for each rank 1,2,3,4,5,6,7 with year quarter
+
+create or replace view rank_pivot as
+    with pivot_data as (
+        select
+            cal_year_quarter,
+            basket_size_rank,
+            productLine
+        from
+            ranked_basket_size
+    )
+    select 
+        *
+    from 
+        pivot_data
+    pivot(
+        max(productLine) 
+        for basket_size_rank
+        in(1 one, 2 two,3 three,4 four,5 five,6 six,7 seven)
+    )
+    order by
+        cal_year_quarter;
+------------------------------------------------------------------------
+
+create or replace view basket_size_performance as
+    select
+        cal_year_quarter,
+        productLine,
+        basket_size,
+        basket_size_rank,
+        one as best,
+        two as second,
+        three as third,
+        seven as worst
+    from
+        ranked_basket_size
+    join
+        rank_pivot r using (cal_year_quarter);
+        
+------------------------------------------------------------------------
+
+create or replace view pivot_basket_size as
+    with pivot_data as(
+        select
+            cal_year_quarter,
+            basket_size,
+            productLine,
+            best,
+            second,
+            third,
+            worst
+        from
+            basket_size_performance
+    )
+    select 
+        *
+    from
+        pivot_data
+    pivot(
+        sum(trunc(basket_size,2)) 
+        for productLine
+        in(
+            'Motorcycles'     p1,
+            'Classic Cars'    p2,
+            'Trucks and Buses'p3,
+            'Vintage Cars'    p4,
+            'Planes'          p5,
+            'Ships'           p6,
+            'Trains'          p7
+        )
+    )
+    order by
+        cal_year_quarter;
+        
+------------------------------------------------------------------------
+
+select 
+    cal_year_quarter,
+    p1, p2, p3, p4, p5, p6, p7,
+    best,
+    second,
+    third,
+    worst
+from 
+    pivot_basket_size
+where
+    substr(cal_year_quarter,1,4) between &v_startY and &v_endY;
+    
+------------------------------------------------------------------------
+
+ttitle off
+clear column
+clear breaks

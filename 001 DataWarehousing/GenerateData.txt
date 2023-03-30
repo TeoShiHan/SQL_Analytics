@@ -1,0 +1,281 @@
+==============================================================================
+GENERATE CUSTOMER DATA
+==============================================================================
+drop sequence customer_seq;
+create sequence customer_seq
+start with 100001
+increment by 1;
+
+drop table temp_cust;
+
+create table temp_cust as
+select * from customers;
+select count(*) from temp_cust;
+
+delete customers;
+
+-- repeat 8 times to get 30K+ customers
+insert into temp_cust
+select * from temp_cust;
+select count(*) from temp_cust;
+
+select to_char(sysdate,'hh:mi:ss') from dual;
+declare
+   v_city     varchar(30);
+   v_state    varchar(30);
+   v_set      number(6);
+
+   cursor cust_cur is
+      select * from temp_cust;
+   t_rec cust_cur%ROWTYPE;
+
+begin
+   for t_rec in cust_cur loop
+-- randomize the start value range
+      v_set := TRUNC(DBMS_RANDOM.value(10001,10042));
+
+      select city, state into v_city, v_state
+      from StateAndCity
+      where StateAndCityID = TRUNC(DBMS_RANDOM.value(v_set,10042));
+      
+      insert into customers values(customer_seq.nextval,
+                                   substr(t_rec.customerName,1,15)||customer_seq.currval,
+                                   t_rec.CONTACTLASTNAME,
+                                   t_rec.CONTACTFIRSTNAME,
+                                   t_rec.PHONE,
+                                   t_rec.ADDRESSLINE1, t_rec.ADDRESSLINE2,
+                                   v_city, v_state,
+                                   t_rec.POSTALCODE,
+                                   t_rec.COUNTRY,
+                                   t_rec.SALESREPEMPLOYEENUMBER,
+                                   t_rec.CREDITLIMIT);
+   end loop;
+
+end;
+/
+select to_char(sysdate,'hh:mi:ss') from dual;
+
+select count(*) from customers;
+
+==============================================================================
+REGENERATE PRODUCT CODES
+==============================================================================
+drop sequence prod_seq;
+create sequence prod_seq
+start with 1001
+increment by 1;
+
+drop table temp_products;
+
+create table temp_products as  
+select * from products;
+select count(*) from temp_products;
+
+delete products;
+
+insert into products 
+select substr(PRODUCTCODE,1,3)||'_'||to_char(prod_seq.nextval),
+       PRODUCTNAME,
+       PRODUCTLINE,
+       PRODUCTSCALE,
+       PRODUCTVENDOR,
+       PRODUCTDESCRIPTION,
+       QUANTITYINSTOCK,
+       BUYPRICE,
+       MSRP       
+from temp_products;
+
+select count(*) from products;
+
+==============================================================================
+GENERATE ORDERS DATA
+==============================================================================
+drop sequence order_seq;
+create sequence order_seq
+start with 1000001
+increment by 1;
+
+delete orders;
+
+-- customerNumber range 100001 to 131232
+-- 31232 customers, on average 100 to 1500 orders per day
+select to_char(sysdate,'hh:mi:ss') from dual;
+declare
+   v_startDate   date:= to_date('31/05/2011','dd/mm/yyyy');
+   v_endDate     date:= to_date('30/05/2021','dd/mm/yyyy');
+begin
+   While v_startDate <= v_endDate Loop
+      For ctr IN 1 .. (TRUNC(DBMS_RANDOM.value(100,1501))) LOOP
+         insert into ORDERS 
+         values(
+                order_seq.nextval,
+                v_startDate,
+                v_startDate+5, -- required date
+                v_startDate+3, -- shipped date
+                'Completed', 'Repeat order',
+                TRUNC(DBMS_RANDOM.value(100001,131233))
+                );
+      End Loop; -- (FOR)
+
+      v_startDate:=v_startDate+1;
+   End Loop;
+end;
+/
+select to_char(sysdate,'hh:mi:ss') from dual;
+
+select count(*) from orders;
+
+==============================================================================
+GENERATE ORDERDETAILS DATA
+==============================================================================
+-- putting products into order numbers to generate the order details
+-- product number is 1001 to 1110
+
+COLUMN Gen_data NEW_VALUE var2
+SELECT to_char(TRUNC(DBMS_RANDOM.value(1001,1111))) as Gen_data 
+from Dual;
+prompt &var2
+
+select productCode, substr(PRODUCTCODE,5,8)
+from products 
+where substr(PRODUCTCODE,5,8) = &var2;
+
+delete orderdetails;
+
+drop table temp_ord_details;
+
+--rec_no is used to identify WHICH duplicate should be deleted later on 
+create table temp_ord_details
+(rec_no           number,
+ orderNumber      number      NOT NULL,
+ productCode      varchar(15) NOT NULL,
+ quantityOrdered  number(4)   NOT NULL,
+ priceEach        number(7,2) NOT NULL,
+ orderLineNumber  number(3)   NOT NULL
+);
+
+select to_char(sysdate,'hh:mi:ss') from dual;
+declare
+   cursor order_cur is
+      select * from orders
+      order by orderNumber;
+   ord_rec order_cur%ROWTYPE;
+ 
+   v_genCode     varchar(6);
+   row_counter   number:=0;
+   v_linecounter number;
+   v_prodCode    PRODUCTS.ProductCode%TYPE;
+   v_price       PRODUCTS.MSRP%TYPE;
+begin
+   For ord_rec IN order_cur LOOP
+      v_linecounter := 0;
+      For counter IN 1 .. TRUNC(DBMS_RANDOM.value(1,5)) Loop
+         
+         row_counter:=row_counter+1;
+
+         select PRODUCTCODE, MSRP  into v_prodCode, v_price
+         from products
+         where substr(PRODUCTCODE,5,8) = (SELECT to_char(TRUNC(DBMS_RANDOM.value(1001,1111)))
+                                                  as Gen_data 
+                                           from Dual);
+
+         v_linecounter:=v_linecounter+1;
+
+         Insert into temp_ord_details values
+               (row_counter,ord_rec.orderNumber, v_prodCode,
+                TRUNC(DBMS_RANDOM.value(1,11)),
+                v_price, v_linecounter
+               );
+      End Loop;
+   End Loop;
+end;
+/
+select to_char(sysdate,'hh:mi:ss') from dual;
+
+select count(*) from temp_ord_details;
+
+select count(distinct orderNumber||productCode)
+from temp_ord_details;
+
+-- difference indicates the number of duplicated records
+
+-- check number of orders that have duplicates, NOT the number of duplicates
+
+drop table Chk_Duplicate;
+
+create table Chk_Duplicate as 
+select rec_no, orderNumber||productCode as Ord_Prod
+from temp_ord_details
+where ordernumber in 
+   (select orderNumber
+    from temp_ord_details
+    group by ordernumber
+    having Count(productCode) > Count(DISTINCT productCode)
+   )
+order by Ord_Prod;
+
+select count(*) from Chk_Duplicate;
+
+-- list sample data
+select * from
+ (select *
+  from Chk_Duplicate
+  order by 2)
+where ROWNUM <=10;
+
+--select the duplicates to be deleted in the temp_ord_details
+
+drop table delete_duplicate_row;
+
+create table delete_duplicate_row
+(recNum number);
+
+declare
+   v_recNum number;
+   v_Code1 varchar(50);
+   v_Code2 varchar(50);
+
+   counters number:=0;
+
+   cursor duplicate_cursor is
+      select * from Chk_Duplicate;
+begin
+   open duplicate_cursor;
+   fetch duplicate_cursor into v_recNum, v_Code1; -- read first row
+   LOOP
+      fetch duplicate_cursor into v_recNum, v_Code2; -- read next row
+      exit when duplicate_cursor%NOTFOUND;
+      if v_Code1=v_Code2 then
+   counters:=counters+1;
+   dbms_output.put_line(counters||': Deleting '||v_recNum||' code '||v_Code2);
+         insert into delete_duplicate_row values
+         (v_recNum);
+      else
+         v_Code1:=v_Code2;
+      end if;
+   end loop;
+   close duplicate_cursor;
+end;
+/
+
+--check number of duplicates to be deleted, should match the difference from above
+select count(*) from delete_duplicate_row;
+
+--delete the duplicates
+
+delete temp_ord_details
+where rec_no IN (Select recNum
+                 from delete_duplicate_row);
+
+--remaining number of unique orders and products combos
+select count(*) from temp_ord_details;
+
+--should be the same number as above, since all combos are unique now 
+select count(distinct orderNumber||productCode)
+from temp_ord_details;
+
+--insert generated data into the orderdetails table 
+insert into OrderDetails
+select orderNumber, ProductCode, quantityOrdered, PriceEach,OrderLineNumber
+from temp_ord_details;
+

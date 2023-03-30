@@ -1,0 +1,13 @@
+supplyName,category,weight(kg)
+Pfizer,vaccine,0.5
+Sinovac,vaccine,0.5
+Astrazeneca,vaccine,0.5
+oxygen tank,equipment,68
+ventilator,equipment,50
+syringe,equipment,0.1
+mask,personal protective equipment,0.1
+isolation gown,personal protective equipment,1
+gloves,personal protective equipment,0.5
+respirator,personal protective equipment,0.5
+Hospital beds,DME,80
+Wheelchairs,DME,80

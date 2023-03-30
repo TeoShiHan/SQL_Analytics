@@ -1,0 +1,53 @@
+alter sesssion set date formate
+
+DROP TABLE RegistrationService;
+DROP TABLE Payment;
+DROP TABLE MEMBERSHIP;
+DROP TABLE APPLICATION;
+DROP TABLE APPOINTMENT;
+DROP TABLE registration;
+DROP TABLE LODGEREPORT;
+DROP TABLE LODGEALLOCATION;
+DROP TABLE LODGE;
+DROP TABLE SUPPLY;
+DROP TABLE WORKLOADMANAGEMENT;
+DROP TABLE EXAMINATION;
+DROP TABLE TREATMENT;
+DROP TABLE EMPLOYEE;
+DROP TABLE JOBSCOPE;
+DROP TABLE TASK;
+DROP TABLE SUPPLIER;
+DROP TABLE POSITION;
+DROP TABLE PET;
+DROP TABLE DISEASE;
+DROP TABLE CUSTOMER;
+DROP TABLE Client;
+
+
+
+set define off
+
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\01 Client.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\02 Customer.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\03 Disease.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\04 Pet.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\05 Position.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\06 Supplier.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\07 Task.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\08 JobScope.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\09 Employee.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\10 Treatment.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\11 Examination.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\12 WorkloadManagement.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\13 Supply.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\14 Lodge.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\15 LodgeAllocation.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\16 LodgeReport.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\17 Registration.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\18 Appointment.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\19 Application.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\20 Membership.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\21 Payment.sql"
+start "C:\Users\Teo Shi Han\Documents\07 TARCITEMS\Year2Sem3\Advance Database Management\ADM Assignment\Script\22 RegistrationService.sql"
+
+set define on

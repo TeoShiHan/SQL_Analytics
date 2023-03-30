@@ -1,0 +1,480 @@
+=======================================================================================
+Dim_Employees
+=======================================================================================
+drop sequence emp_seq;
+create sequence emp_seq
+start with 10001
+increment by 1;
+
+drop table DIM_employees;
+create table DIM_employees
+(employee_key    number(5)  not null,
+ employeeNumber  number(11) not null,
+ firstName       varchar(50),
+ lastName        varchar(50),
+ officeCode      varchar(10),
+ jobtitle        varchar(50),
+ primary key(employee_key)
+);
+
+select to_char(sysdate,'hh:mi:ss') from dual;
+insert into DIM_employees
+select emp_seq.nextval,
+       employeeNumber, firstName, lastName, officeCode, jobtitle
+from employees;
+select to_char(sysdate,'hh:mi:ss') from dual;
+
+--23
+======================================================================================
+DIM_Products
+======================================================================================
+drop sequence product_seq;
+create sequence product_seq
+start with 100001
+increment by 1;
+
+drop table DIM_products;
+create table DIM_products
+(product_key     number  not null,
+ productCode     varchar(15) not null,
+ productName     varchar(70),
+ productLine     varchar(50),
+ productScale    varchar(10),
+ productVendor   varchar(50),
+ primary key(product_key)
+);
+
+select to_char(sysdate,'hh:mi:ss') from dual;
+insert into DIM_products
+select product_seq.nextval,
+       productCode, productName, productLine,
+       productScale, productVendor
+from products;
+select to_char(sysdate,'hh:mi:ss') from dual;
+
+-110
+======================================================================================
+DIM_Offices
+======================================================================================
+drop sequence office_seq;
+create sequence office_seq
+start with 10001
+increment by 1;
+
+drop table DIM_offices;
+create table DIM_offices
+(office_key    number(5)   not null,  -- surrogate key
+ officeCode    varchar(10) not null,
+ city          varchar(50) not null,
+ state         varchar(50) not null,
+ country       varchar(50) not null,
+ postalcode    varchar(15) not null,
+ territory     varchar(10) not null,
+primary key(office_key)
+);
+
+select to_char(sysdate,'hh:mi:ss') from dual;
+insert into DIM_offices 
+select office_seq.nextval, officeCode, city, state,
+       country, postalCode, territory
+from offices;
+select to_char(sysdate,'hh:mi:ss') from dual;
+
+--KNOW SOME STATES ARE NULL
+--cannot insert NULL into ("STUDENT"."DIM_OFFICES"."STATE")
+select count(*) from dim_offices;
+--0
+
+--DEALING WITH MISSING VALUES
+drop sequence office_seq;
+create sequence office_seq
+start with 10001
+increment by 1;
+
+declare
+  cursor office_cursor is
+         select officeCode, city, state, country, postalcode, territory
+         from offices;
+
+  office_rec office_cursor%ROWTYPE;
+
+BEGIN
+ 
+  FOR office_rec in office_cursor LOOP
+    IF (office_rec.state IS NULL) THEN
+        office_rec.state:=office_rec.city;
+        DBMS_OUTPUT.PUT_LINE('REPLACING'||' '||
+                                  office_rec.officeCode||' '||
+                                  office_rec.city||' '||
+                                  office_rec.state||' '||
+                                  office_rec.country||' '||
+                                  office_rec.postalcode||' '||
+                                  office_rec.territory);
+    END IF;
+
+  INSERT INTO DIM_offices VALUES (office_seq.nextval,
+                                  office_rec.officeCode,
+                                  office_rec.city,
+                                  office_rec.state,
+                                  office_rec.country,
+                                  office_rec.postalcode,
+                                  office_rec.territory);
+  END LOOP;
+
+END;
+/
+
+select count(*) from dim_offices;
+
+======================================================================================
+DIM_Customers
+======================================================================================
+drop sequence customer_seq;
+create sequence customer_seq
+start with 1000001
+increment by 1;
+
+drop table DIM_customers;
+create table DIM_customers
+(customer_key     number not  null,
+ customerNumber   number(11)  not null,
+ city             varchar(50),
+ state            varchar(50),
+ country          varchar(50),
+ staffNo          number(11),
+ effectiveDate    date,
+ expiredDate      date,
+ expired        char(1),
+ primary key(customer_key)
+);
+
+select to_char(sysdate,'hh:mi:ss') from dual;
+insert into DIM_customers
+select customer_seq.nextval,
+       customerNumber,
+       city,
+       state,
+       country,
+       salesRepEmployeeNumber,
+       SYSDATE,
+       (TO_DATE('31/12/9999','DD/MM/YYYY')),
+       'N' 
+from customers;
+select to_char(sysdate,'hh:mi:ss') from dual;
+
+--KNOW SOME STAFFNO ARE NULL
+select count(*) from dim_customers where staffno IS NULL;
+
+--dummy office
+insert into DIM_offices values(office_seq.nextval,'99','Kuala Lumpur','KUL','Malaysia','53300','APAC');
+
+--dummy employee
+insert into DIM_employees values (emp_seq.nextval, 999999,'Dummy','Employee','99',NULL);
+
+update dim_customers
+set staffNo=999999
+where staffNo IS NULL;
+
+
+====================================================================================
+DIM_Date
+====================================================================================
+drop sequence date_seq;
+
+create sequence date_seq 
+start with 100001
+increment by 1;
+
+drop table DIM_Date;
+
+create table DIM_Date
+(date_key              number not null,
+ Calendar_date         date, -- e.g. 3-4 years of data, 31/05/2011-30/05/2021
+ Day_of_week           number(1), -- 1 to 7
+ Day_Num_Cal_Month     number(2), -- 1 to 31
+ Day_Num_Cal_Year      number(3), -- 1 to 366
+ Last_Day_in_Month_Ind char(1),   -- 'Y/N'
+ Cal_Week_End_Date     date,      -- date of last day of the week
+ Cal_Week_in_Year      number(2), -- 1 to 52
+ Cal_Month_Name        varchar(9),
+ Cal_Month_No_in_Year  number(2), -- 1 to 12
+ Cal_Year_Month        char(7),   -- e.g. 2021-07
+ Cal_Quarter           char(2),   -- e.g. 'Q1' to 'Q4'
+ Cal_Year_Quarter      char(6),   -- e.g. '2020Q1', '2021Q4'
+ Cal_Year              number(4), -- e.g. 2021
+ Holiday_Ind           char(1),   --'Y/N'
+ Weekday_Ind           char(1),   --'Y/N'
+primary key(date_key)
+);
+
+
+declare
+   every_date         date;
+   end_date           date;
+   v_day_of_week      number(1);
+   v_day_of_month     number(2);
+   v_day_of_year      number(3);
+   last_day_month_ind char(1);
+   v_week_end_date    date;
+   v_week_in_year     number(2);
+   v_month_name       varchar(9);
+   v_month_no         number(2);
+   v_year_month       char(7);
+   v_quarter          char(2);
+   v_year_quarter     char(6); 
+   v_year             number(4);
+   v_holiday_ind      char(1);
+   v_weekday_ind      char(1);
+
+begin
+   every_date     := to_date('31/05/2011','dd/mm/yyyy');
+   end_date       := to_date('30/05/2021','dd/mm/yyyy');
+   v_holiday_ind  :='N';
+
+   while (every_date <= end_date) LOOP
+      v_day_of_week    := to_char(every_date,'D');
+      v_day_of_month   := to_char(every_date,'DD');
+      v_day_of_year    := to_char(every_date,'DDD');
+
+      if every_date = Last_Day(every_date) then
+         last_day_month_ind := 'Y';
+      end if;
+
+      v_week_end_date  := every_date+(7-(to_char(every_date,'d')));
+  
+      v_week_in_year   := to_char(every_date,'IW');
+      v_month_name     := to_char(every_date,'MONTH');
+
+--v_month_name:=to_char(sysdate, 'Month')
+--alternative to extracting month from a given date
+
+      v_month_no       := extract (month from every_date);
+      v_year_month     := to_char(every_date,'YYYY-MM');
+
+      if (v_month_no<=3) then
+         v_quarter := 'Q1';
+      elsif (v_month_no<=6) then
+         v_quarter := 'Q2';
+      elsif (v_month_no<=9) then
+         v_quarter := 'Q3';
+      else
+         v_quarter := 'Q4';
+      end if;
+
+      v_year          := extract (year from every_date);
+
+--v_year:=to_char(every_date, 'DDDD');
+--alternative to extracting year from a date
+
+      v_year_quarter  := v_year||v_quarter;
+
+      if (v_day_of_week between 2 and 6) then
+         v_weekday_ind := 'Y';
+      else
+         v_weekday_ind := 'N';
+      end if;
+      
+      insert into DIM_date values(date_seq.nextval,
+                                  every_date,
+                                  v_day_of_week,
+                                  v_day_of_month,
+                                  v_day_of_year,
+                                  last_day_month_ind,
+                                  v_week_end_date,
+                                  v_week_in_year,
+                                  v_month_name,
+                                  v_month_no,
+                                  v_year_month,
+                                  v_quarter,
+                                  v_year_quarter, 
+                                  v_year,
+                                  v_holiday_ind,
+                                  v_weekday_ind
+                                 );
+      every_date := every_date + 1;
+   end LOOP;
+end;
+/
+
+select count(*) from dim_date;
+
+--3653
+
+-----------------------------------------------------------------------------------------
+create table date_temp
+(date_key              number not null,
+ Calendar_date         date, -- e.g. 3-4 years of data, 31/05/2011-30/05/2021
+ Day_of_week           number(1), -- 1 to 7
+ Day_Num_Cal_Month     number(2), -- 1 to 31
+ Day_Num_Cal_Year      number(3), -- 1 to 366
+ Last_Day_in_Month_Ind char(1),   -- 'Y/N'
+ Cal_Week_End_Date     date,      -- date of last day of the week
+ Cal_Week_in_Year      number(2), -- 1 to 52
+ Cal_Month_Name        varchar(9),
+ Cal_Month_No_in_Year  number(2), -- 1 to 12
+ Cal_Year_Month        char(7),   -- e.g. 2021-07
+ Cal_Quarter           char(2),   -- e.g. 'Q1' to 'Q4'
+ Cal_Year_Quarter      char(6),   -- e.g. '2020Q1', '2021Q4'
+ Cal_Year              number(4), -- e.g. 2021
+ Holiday_Ind           char(1),   --'Y/N'
+ Weekday_Ind           char(1),   --'Y/N'
+ Month_Start           char(1),   --'Y/N'
+ Month_End             char(1),   --'Y/N'
+ primary key(date_key)
+);
+
+create or replace function is_month_end(in_month number, in_day number, in_year number)
+return char
+is
+    v_max number;
+begin
+    select 
+        max(DAY_NUM_CAL_MONTH) into v_max
+    from   
+        dim_date
+    where 
+        CAL_MONTH_NO_IN_YEAR = in_month and cal_year = in_year;
+    
+    if in_day = v_max then 
+        return 'Y';
+    else
+        return 'N';
+    end if;
+end;
+/
+
+create or replace function is_month_start(in_day number)
+return char
+is
+begin
+    if in_day = 1 then
+        return 'Y';
+    else
+        return 'N';
+    end if;
+end;
+/
+
+declare
+    v_is_start char(1) := 'E';
+    v_is_end char(1) :='E';
+
+    cursor dim_date_curr is
+        select * from dim_date;
+begin
+    for r in dim_date_curr
+    loop
+        v_is_start := is_month_start(r.Day_Num_Cal_Month);
+        v_is_end := is_month_end(r.Cal_Month_No_in_Year, r.Day_Num_Cal_Month, r.Cal_Year);
+        insert into date_temp values
+        (
+         r.date_key,
+         r.Calendar_date,
+         r.Day_of_week,
+         r.Day_Num_Cal_Month,
+         r.Day_Num_Cal_Year,
+         r.Last_Day_in_Month_Ind,
+         r.Cal_Week_End_Date,
+         r.Cal_Week_in_Year,
+         r.Cal_Month_Name,
+         r.Cal_Month_No_in_Year,
+         r.Cal_Year_Month,
+         r.Cal_Quarter,
+         r.Cal_Year_Quarter,
+         r.Cal_Year,
+         r.Holiday_Ind,
+         r.Weekday_Ind,
+         v_is_start,
+         v_is_end
+        );
+    end loop;
+end;
+/
+
+
+drop table dim_date;
+
+
+create table dim_date
+(date_key              number not null,
+ Calendar_date         date, -- e.g. 3-4 years of data, 01/01/2019-31/07/2022
+ Day_of_week           number(1), -- 1 to 7
+ Day_Num_Cal_Month     number(2), -- 1 to 31
+ Day_Num_Cal_Year      number(3), -- 1 to 366
+ Last_Day_in_Month_Ind char(1),   -- 'Y/N'
+ Cal_Week_End_Date     date,      -- date of last day of the week
+ Cal_Week_in_Year      number(2), -- 1 to 52
+ Cal_Month_Name        varchar(9),
+ Cal_Month_No_in_Year  number(2), -- 1 to 12
+ Cal_Year_Month        char(7),   -- e.g. 2021-07
+ Cal_Quarter           char(2),   -- e.g. 'Q1' to 'Q4'
+ Cal_Year_Quarter      char(6),   -- e.g. '2020Q1', '2021Q4'
+ Cal_Year              number(4), -- e.g. 2021
+ Holiday_Ind           char(1),   --'Y/N'
+ Weekday_Ind           char(1),   --'Y/N'
+ Month_Start           char(1),   --'Y/N'
+ Month_End             char(1),   --'Y/N'
+ primary key(date_key)
+);
+
+insert into dim_date
+select * from date_temp;
+
+--3653
+
+drop table date_temp;
+
+====================================================================================
+Sales_Fact
+====================================================================================
+drop table sales_fact;
+
+create table SALES_FACT
+(date_key        number not null,
+ product_key     number not null,
+ customer_key    number not null,
+ office_key      number(5) not null,
+ employee_key    number(5) not null,
+ quantityOrdered number(4),
+ priceEach       number(7,2), --keep track of the price, which will change over time
+ lineTotal       number(9,2),
+ orderNumber     number(11),
+ orderLineNumber number(3),
+primary key(date_key, product_key, customer_key,
+            office_key, employee_key, orderNumber)
+);
+
+--fact table's primary keys are all the dimension tables' keys combined 
+--orderNumber was added because it is logical for the same customer to order the same product from the same
+office on the same day, hence the orderNumber is th only unique identifier
+
+select to_char(sysdate,'hh:mi:ss') from dual;
+
+insert into Sales_fact
+select date_key, product_key, customer_key,
+       office_key, employee_key,
+       B.quantityordered, B.priceEach,
+       (B.quantityordered*B.priceEach) LineTotal,
+       A.orderNumber, B.orderLineNumber
+from Dim_date D
+join orders A
+     on trunc(D.calendar_date) = trunc(A.orderDate)
+join orderDetails B
+     on A.orderNumber = B.orderNumber
+join Dim_products P
+     on P.productCode = B.productCode
+join Dim_customers C
+     on A.customerNumber = C.customerNumber
+join Dim_employees E
+     on E.employeeNumber = C.staffNo
+join Dim_offices O
+     on E.officeCode = O.officeCode;
+
+select to_char(sysdate,'hh:mi:ss') from dual;
+select count (*) from sales_fact;
+
+select count(*) from orderdetails;
+
+
+
+

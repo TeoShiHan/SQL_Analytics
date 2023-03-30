@@ -1,0 +1,145 @@
+set linesize 200
+set pagesize 20
+
+accept v_startY char prompt 'Enter the starting year (yyyy) :'
+accept v_endY char prompt 'Enter the ending year (yyyy) :'
+
+---------------------------------------------------------------------------------
+-- get revenue by product line && year
+
+create or replace view yearlyProductLineRevenue as
+    with LineRevenue as(
+        select
+            productLine,
+            cal_year,
+            productCode,
+            priceEach,
+            sum(quantityOrdered) as TotalOrder,
+            sum(quantityOrdered) * priceEach as Revenue
+        from
+            dim_products
+        join
+            sales_fact using(product_key)
+        join
+            dim_date using(date_key)
+        group by
+            productLine,
+            cal_year,
+            productCode,
+            priceEach
+        order by
+            productCode
+    ),
+    LookupRevenue as(
+        select
+            productLine,
+            cal_year,
+            sum(Revenue) as TotalRevenue,
+            lag(sum(Revenue)) 
+            over (
+                partition by productLine 
+                order by productLine
+            ) as PrevRevenue
+        from
+            LineRevenue
+        group by
+            productLine,
+            cal_year
+        order by
+            productLine,
+            cal_year
+    )
+    select
+        productLine,
+        cal_year,
+        TotalRevenue,
+        PrevRevenue,
+        (TotalRevenue - PrevRevenue) / PrevRevenue as YOY
+    from 
+        LookupRevenue
+    where 
+        PrevRevenue is not null;
+
+-- select * from yearlyProductLineRevenue;
+
+---------------------------------------------------------------------------------
+
+-- since cant specify the year in in clause pivot, 
+-- dynamic query is required to generate the cuery
+
+create or replace function generate_yoy_query_str(v_start number, v_end number)
+return varchar2
+is
+    sql_stmt1    varchar2(1000);
+    sql_stmt2    varchar2(1000);
+    sql_stmt3    varchar2(1000);
+    final_sql   varchar2(1000);
+    year_str    varchar2(1000);
+    startY      number;
+    endY         number;
+begin
+    startY := v_start;
+    endY   := v_end;
+    
+    sql_stmt1 := '
+        create or replace view yoy_view as
+        select *
+        from
+        (
+            select
+                productLine,
+                cal_year,
+                yoy
+            from
+                yearlyProductLineRevenue
+        )';
+    
+    sql_stmt2 := '
+        )
+        order by
+            productLine';
+       
+    while startY <= endY
+    loop
+        year_str := year_str || startY || ',';
+        startY := startY+1;
+    end loop;
+    
+    year_str  := substr(year_str,1, length(year_str)-1);
+    sql_stmt3 := '
+        pivot
+        (
+            sum(trunc(yoy * 100,2)) for cal_year in (' || year_str || ')';
+ 
+    final_sql := sql_stmt1 || sql_stmt3 || sql_stmt2;
+
+    return final_sql;
+end;
+/
+
+---------------------------------------------------------------------------------
+-- create view from dynamic query
+
+declare
+begin
+    -- dbms_output.put_line(generate_yoy_query_str(&v_startY, &v_endY));
+    execute immediate generate_yoy_query_str(&v_startY, &v_endY);
+end;
+/
+
+---------------------------------------------------------------------------------
+
+column productLine format a20 heading 'Product Line';
+
+ttitle col 10 'YOY revenue growth of each product line from &v_startY to &v_endY' skip 1-
+       col 10  ========================================================= skip 2
+
+---------------------------------------------------------------------------------
+       
+select * from yoy_view;
+
+---------------------------------------------------------------------------------
+
+ttitle off
+clear column
+clear breaks

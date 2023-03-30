@@ -1,0 +1,89 @@
+--Type 2 SCD for Dim_Customers
+
+ALTER SESSION SET NLS_DATE_FORMAT='DD/MM/YYYY';
+SET LINESIZE 200
+SET PAGESIZE 150
+SET DEFINE ON;
+SET SERVEROUTPUT ON
+
+CREATE OR REPLACE PROCEDURE UPDATE_CUSTOMER (in_customerid IN NUMBER,
+                                             in_city IN VARCHAR2,
+                                             in_state IN VARCHAR2,
+                                             in_country IN VARCHAR2,
+                                             in_staffNo IN NUMBER) AS
+
+  e_not_found EXCEPTION;
+
+  V_custNum     DIM_Customers.customerNumber%type;
+  V_city        DIM_Customers.city%TYPE;
+  V_state       DIM_Customers.state%TYPE;
+  V_country     DIM_Customers.country%TYPE;
+  V_staffNo     DIM_Customers.staffNo%TYPE;
+  V_expired     DIM_Customers.expired%TYPE;
+  v_date        date;
+
+  CURSOR CUSTOMER_CURSOR IS
+    SELECT customerNumber, city, state, country, staffNo
+    FROM DIM_Customers
+    WHERE customerNumber=in_customerid and expired='N';
+
+BEGIN
+
+  OPEN CUSTOMER_CURSOR;
+
+  FETCH CUSTOMER_CURSOR INTO 
+          V_custNum,
+          V_city,
+          V_state,
+          V_country,
+          V_staffNo;
+
+  IF CUSTOMER_CURSOR%NOTFOUND
+  THEN  
+   RAISE e_not_found;
+  END IF;
+
+  DBMS_OUTPUT.PUT_LINE('Original Record');
+  DBMS_OUTPUT.PUT_LINE('Customer Number: '||V_custNum);
+  DBMS_OUTPUT.PUT_LINE('City: '||V_city);
+  DBMS_OUTPUT.PUT_LINE('State: '||V_state);
+  DBMS_OUTPUT.PUT_LINE('Country: '||V_country);
+  DBMS_OUTPUT.PUT_LINE('Staff No.: '||V_staffNo);
+
+  v_date := SYSDATE;
+
+  UPDATE Dim_Customers
+  SET expiredDate = v_date, expired = 'Y'
+  WHERE customerNumber = in_customerid and expired = 'N';
+
+  INSERT INTO DIM_Customers VALUES(customer_seq.nextval,
+                                   V_custNum,
+                                   in_city,
+                                   in_state,
+                                   in_country,
+                                   in_staffNo,
+                                   v_date,
+                                   (TO_DATE('31/12/9999','DD/MM/YYYY')),
+                                   'N'); 
+
+  DBMS_OUTPUT.PUT_LINE('Record has been updated into Dim_Customers table');
+  
+  CLOSE CUSTOMER_CURSOR;
+  -- cursor by default wll be closed when procedure ends
+
+EXCEPTION
+  WHEN e_not_found THEN
+   DBMS_OUTPUT.PUT_LINE('Customer record not found, please try again.');
+
+END;
+/
+
+ACCEPT v_custNum  number       PROMPT  'Enter the Customer Number: '
+ACCEPT v_city     varchar(50)  PROMPT  'Enter the customer's updated city: '
+ACCEPT v_state    varchar(50)  PROMPT  'Enter the customer's updated state: '
+ACCEPT v_country  varchar(50)  PROMPT  'Enter the customer's updated country: '
+ACCEPT v_staffNo  number       PROMPT  'Enter the update Staff Number: '
+
+EXEC UPDATE_CUSTOMER(v_custNum, v_city, v_state, v_country, v_staffNo);
+
+

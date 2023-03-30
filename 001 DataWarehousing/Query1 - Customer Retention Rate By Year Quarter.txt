@@ -1,0 +1,204 @@
+SET LINESIZE 250
+SET PAGESIZE 200
+
+accept v_year char prompt 'Enter the year (yyyy) :'
+
+column  month           format a9        heading 'Month'
+column  new_customers   format 99999     heading 'New Customers'
+
+ttitle col 60 'Monthly customer retention rate on year &v_year' skip 1-
+       col 60  ============================================ skip 2
+
+--------------------------------------------------------------------------
+-- function to convert number into month
+
+create or replace function no_to_month_name(no in number) 
+return char is
+    v_month_str char(9);
+begin
+    case no
+    when 1 then
+        v_month_str := 'JANUARY';
+    when 2 then
+        v_month_str := 'FEBRUARY';        
+    when 3 then
+        v_month_str := 'MARCH';
+    when 4 then
+        v_month_str := 'APRIL';
+    when 5 then
+        v_month_str := 'MAY';
+    when 6 then
+        v_month_str := 'JUNE';
+    when 7 then
+        v_month_str := 'JULY';
+    when 8 then
+        v_month_str := 'AUGUST';        
+    when 9 then
+        v_month_str := 'SEPTEMBER';
+    when 10 then
+        v_month_str := 'OCTOBER';
+    when 11 then
+        v_month_str := 'NOVEMBER';
+    when 12 then
+        v_month_str := 'DECEMBER';
+    end case;
+    return v_month_str;
+end;
+/
+
+----------------------------------------------------------------------------
+-- get first appearance of each customer id vs month
+
+create or replace view first_purchase as
+    select
+        customerNumber,
+        min(cal_month_no_in_year) as first_purchase_month
+    from
+        sales_fact
+    join
+        dim_date using (date_key)
+    join
+        dim_customers using (customer_key)
+    where
+        cal_year = &v_year
+    group by
+        customerNumber;
+
+-----------------------------------------------------------------------------
+-- check ustomer activity in each month
+
+create or replace view customer_subsequent_purchase as
+    select
+        distinct customerNumber,
+        (cal_month_no_in_year - first_purchase_month) as subsequent_month
+    from
+        sales_fact
+    join
+        dim_date using (date_key)
+    join
+        dim_customers using (customer_key)
+    join
+        first_purchase fa using (customerNumber)
+    where
+        cal_year = &v_year
+    order by
+        customerNumber,
+        subsequent_month;
+
+-----------------------------------------------------------------------------
+-- count number of first purchase customers in each month
+
+create or replace view cohort_size as
+    select
+        first_purchase_month,
+        count(first_purchase_month) as first_customers_qty
+    from
+        first_purchase
+    group by
+        first_purchase_month
+    order by first_purchase_month;
+
+-----------------------------------------------------------------------------
+-- retention table first_purchase X subsequent_month
+
+create or replace view retention_table as
+    select
+        first_purchase_month,
+        subsequent_month,
+        count(first_purchase_month) as retained_qty
+    from
+        customer_subsequent_purchase
+    join
+        first_purchase using (customerNumber)
+    group by
+        first_purchase_month,
+        subsequent_month
+    order by
+        first_purchase_month,
+        subsequent_month;
+
+-----------------------------------------------------------------------------
+-- deriving the retention rate
+
+create or replace view cohort_analysis as
+    select
+      no_to_month_name(first_purchase_month) as month,
+      first_customers_qty as new_customers,
+      subsequent_month,
+      retained_qty * 100 / first_customers_qty as retention_rate
+    from 
+        retention_table
+    left join 
+        cohort_size using (first_purchase_month) 
+    where 
+        first_purchase_month IS NOT NULL
+    order by 
+        first_purchase_month, 
+        subsequent_month;
+        
+-----------------------------------------------------------------------------
+-- pivot the result
+
+select * from cohort_analysis
+pivot(
+    sum(trunc(retention_rate,2)) 
+    for subsequent_month
+    in ( 
+        0,1,2,3,4,5,6,7,8,9,10,11
+    )
+);
+-----------------------------------------------------------------------------
+
+/*
+The principle here :
+
+table 1
+ --------------------------
+ firstVisitMonth | custID
+ --------------------------
+    1            |  cust01
+    1            |  cust02
+    2            |  cust01
+    2            |  cust02
+ --------------------------
+ 
+-- table 2
+ subsequent purchase
+ --------------------------
+ subsequent month | custID
+ --------------------------
+    0            |  cust01
+    0            |  cust02
+    1            |  cust01
+    1            |  cust02
+ --------------------------
+   
+-- table 1 X table 2 give us:
+
+----------------------------------------------
+firstVisitMonth | subsequent month | custID
+----------------------------------------------
+      1         |     0            |  cust02 
+      1         |     1            |  cust02
+      2         |     0            |  cust02 
+      2         |     1            |  cust02
+----------------------------------------------
+ 
+ -- by counting, we know that
+----------------------------------------
+firstVisitMonth | subsequent month qty | 
+----------------------------------------
+      1         |     2                | 
+      2         |     2                |
+----------------------------------------
+*/
+
+
+clear column
+ttitle off
+clear breaks
+    
+    
+ 
+    
+    
